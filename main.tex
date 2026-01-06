@@ -1,8 +1,8 @@
-% !TeX program = xelatex
+
 \documentclass{xdupgthesis} 
-\bibliographystyle{gbt7714-2005}
-\bibliography{zlib/zlib}
-\newcommand{\upcite}[1]{\textsuperscript{\textsuperscript{\cite{#1}}}}
+% \bibliographystyle{gbt7714-2005}
+% \bibliography{zlib/zlib.bib}
+% \newcommand{\upcite}[1]{\textsuperscript{\textsuperscript{\cite{#1}}}}
 
 \usepackage{bbm}
 \usepackage{url}
@@ -22,6 +22,10 @@
 \usepackage{stfloats}
 \usepackage{float}
 
+\usepackage{graphicx}  % 用于插入图片
+\usepackage{subcaption} % 用于副标题和子图
+\usepackage{adjustbox}
+
 \xdusetup{
     style = {
         cjk-font = win, 
@@ -39,7 +43,7 @@
         graduate-type = {硕士},
         degree-type = {学术},
         degree = {工学硕士},
-        title = {基于深度融合与注意力机制的\protect\\RGBT目标跟踪},
+        title = {基于BEiT相对映射网络的单目深度估计},
         title* = {RGBT Object Tracking Based on Deep Fusion and Attention Mechanism},
         department = {电子工程学院},
         major = {控制科学与工程},
@@ -51,7 +55,7 @@
         supervisor* = {Xinbo GAO},
         supervisor-title = {教授},
         supervisor-title* = {Professor},
-        student-id = {23021211705},
+        student-id = {23021211706},
         clc = {TP391},
         % secret-level = {公开},
         submit-date = {2026-4},
@@ -70,7 +74,7 @@
         keywords* = {3D Computer Vision,Monocular Depth Estimation,Absolute Depth Estimation},
         los = {chapters/los.tex}, % 符号对照表
         loa = {chapters/loa.tex}, % 缩略语对照表
-        bib-resource = {zlib/zlib.bib}, % 参考文献  google scholar可以直接复制，粘贴到zlib.bib
+        bib-resource = {refrence.bib}, % 参考文献  google scholar可以直接复制，粘贴到zlib.bib
         % appendix = {附录文件路径},
         acknowledgements = {chapters/acknowledgements.tex}, % 致谢
         bio = {chapters/bio.tex}, % 作者简介
@@ -80,7 +84,9 @@
 \begin{document}
 
 \include{chapters/Chapter1}
-
-
+\include{chapters/Chapter2}
+\include{chapters/Chapter3}
+\include{chapters/Chapter4}
+\include{chapters/Chapter5}
 
 \end{document}

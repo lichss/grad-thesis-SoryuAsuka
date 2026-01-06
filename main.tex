@@ -1,0 +1,86 @@
+% !TeX program = xelatex
+\documentclass{xdupgthesis} 
+\bibliographystyle{gbt7714-2005}
+\bibliography{zlib/zlib}
+\newcommand{\upcite}[1]{\textsuperscript{\textsuperscript{\cite{#1}}}}
+
+\usepackage{bbm}
+\usepackage{url}
+\usepackage{multirow}
+\usepackage{natbib}
+\usepackage{verbatim}
+\usepackage{float}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{pifont}
+\usepackage{amssymb}
+\usepackage{tabularx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{stfloats}
+\usepackage{float}
+
+\xdusetup{
+    style = {
+        cjk-font = win, 
+        latin-font = gyre,
+        language = zh, 
+        bib-backend = bibtex,
+        % biblatex-option = { gbnamefmt = quanpin }
+        % 查重、盲审时候直接从这里移除即可
+        % remove-page = {封面,提名页,声明页,索引,对照表,目录,参考文献,致谢,作者简介}, % 查重
+        % remove-page = {声明页,致谢}, %盲审
+        % 移除页面的参数{封面|提名页|声明页|摘要|索引|对照表|目录|附录|参考文献|致谢|作者简介|}
+        % anonymous = {true}, % 匿名
+    },
+    info = {
+        graduate-type = {硕士},
+        degree-type = {学术},
+        degree = {工学硕士},
+        title = {基于深度融合与注意力机制的\protect\\RGBT目标跟踪},
+        title* = {RGBT Object Tracking Based on Deep Fusion and Attention Mechanism},
+        department = {电子工程学院},
+        major = {控制科学与工程},
+        major* = {Control Science and Engineering},
+        sub-major = {模式识别与智能系统},
+        author = {徐程升},
+        author* = {Chengsheng XU},
+        supervisor = {高新波},
+        supervisor* = {Xinbo GAO},
+        supervisor-title = {教授},
+        supervisor-title* = {Professor},
+        student-id = {23021211705},
+        clc = {TP391},
+        % secret-level = {公开},
+        submit-date = {2026-4},
+        % submit-data = {yyyy-mm-dd}
+        % statement-scan = {⟨学位论文独创性声明和关于论文使用授权的说明页扫描文件路径⟩},
+        % statement-sign = {⟨文件路径1,文件路径2,文件路径3,文件路径4,文件路径5,文件路径6⟩},
+            % 文件路径 1 学位论文独创性声明本人签名文件路径。
+            % 文件路径 2 学位论文独创性声明日期文件路径。
+            % 文件路径 3 关于论文使用授权的说明本人签名文件路径。
+            % 文件路径 4 关于论文使用授权的说明日期文件路径。
+            % 文件路径 5 关于论文使用授权的说明导师签名文件路径。
+            % 文件路径 6 关于论文使用授权的说明日期文件路径。
+        abstract = {chapters/Abstract-zh.tex},
+        abstract* = {chapters/Abstract-en.tex},
+        keywords = {三维计算机视觉,单目深度估计,绝对深度估计},
+        keywords* = {3D Computer Vision,Monocular Depth Estimation,Absolute Depth Estimation},
+        los = {chapters/los.tex}, % 符号对照表
+        loa = {chapters/loa.tex}, % 缩略语对照表
+        bib-resource = {zlib/zlib.bib}, % 参考文献  google scholar可以直接复制，粘贴到zlib.bib
+        % appendix = {附录文件路径},
+        acknowledgements = {chapters/acknowledgements.tex}, % 致谢
+        bio = {chapters/bio.tex}, % 作者简介
+    },
+}
+
+\begin{document}
+
+\include{chapters/Chapter1}
+
+
+
+\end{document}

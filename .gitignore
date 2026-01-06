@@ -41,3 +41,4 @@ Thumbs.db
 .vscode/
 *.sublime-project
 *.sublime-workspace
+*.bbl-SAVE-ERROR

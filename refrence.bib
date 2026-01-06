@@ -1,27 +1,105 @@
-@inproceedings{ref46,
-  title={Multi-modal fusion for end-to-end RGB-T tracking},
-  author={Zhang, Lichao and Danelljan, Martin and Gonzalez-Garcia, Abel and others},
-  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision Workshops},
-  pages={0--0},
+
+% --- 阶段1：初期几何特征与先验 ---
+@article{make3d,
+  title={Make3d: Learning 3d scene structure from a single still image},
+  author={Saxena, Ashutosh and Sun, Min and Ng, Andrew Y},
+  journal={IEEE transactions on pattern analysis and machine intelligence},
+  volume={31},
+  number={5},
+  pages={824--840},
+  year={2008}
+}
+
+% --- 阶段2：CNN 时代的开创性工作 (Eigen 是深度学习深度估计的鼻祖) ---
+@article{Eigen,
+  title={Depth map prediction from a single image using a multi-scale deep network},
+  author={Eigen, David and Puhrsch, Christian and Fergus, Rob},
+  journal={Advances in neural information processing systems (NeurIPS)},
+  volume={27},
+  year={2014}
+}
+
+% --- 阶段3：Vision Transformer (ViT) 与大模型 ---
+@inproceedings{dpt,
+  title={Vision transformers for dense prediction},
+  author={Ranftl, René and Bochkovskiy, Alexey and Koltun, Vladlen},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages={12173--12183},
+  year={2021}
+}
+
+% --- 比例模糊性与不适定问题 ---
+@inproceedings{uncertainty,
+  title={What uncertainties do we need in bayesian deep learning for computer vision?},
+  author={Kendall, Alex and Gal, Yarin},
+  booktitle={Advances in neural information processing systems (NeurIPS)},
+  year={2017}
+}
+
+% --- 相对深度与强泛化性 (MiDaS 是相对深度估计的标杆) ---
+@article{midas,
+  title={Towards robust monocular depth estimation: Mixing datasets for zero-shot cross-dataset transfer},
+  author={Ranftl, René and Lasinger, Katrin and Hafner, David and Schindler, Konrad and Koltun, Vladlen},
+  journal={IEEE transactions on pattern analysis and machine intelligence},
+  year={2020}
+}
+
+@inproceedings{dorn,
+  title={Deep ordinal regression network for monocular depth estimation},
+  author={Fu, Huan and Gong, Mingming and Wang, Chaohui and Batmanghelich, Kayhan and Tao, Dacheng},
+  booktitle={Proceedings of the IEEE conference on computer vision and pattern recognition (CVPR)},
+  pages={2002--2011},
+  year={2018}
+}
+
+@inproceedings{beit,
+  title={{BEiT}: {BERT} Pre-Training of Image Transformers},
+  author={Bao, Hangbo and Dong, Li and Piao, Songhao and Wei, Furu},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2022}
+}
+
+@article{leres,
+  title={Learning to recover 3D scene shape from a single image},
+  author={Yin, Wei and Liu, Yifan and Shen, Chunhua and Yan, Youliang},
+  journal={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year={2021}
+}
+
+@inproceedings{metric3d,
+  title={Metric3D: Towards Zero-shot Metric Depth Prediction via Large-scale Multi-dataset Training},
+  author={Yin, Wei and Zhang, Chi and Chen, Hao and others},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  year={2023}
+}
+
+@inproceedings{boosting,
+  title={Boosting Monocular Depth Estimation Models to High Resolution},
+  author={Miangoleh, S Mahdi and Szeliski, Richard and Akbari, Habib and Wang, Yangzhou},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year={2021}
+}
+
+
+
+@inproceedings{Chen2016,
+  title={Single-image depth perception in the wild},
+  author={Chen, Weifeng and Fu, Zhao and Yang, Dawei and Deng, Jia},
+  booktitle={Proceedings of the 30th International Conference on Neural Information Processing Systems (NIPS)},
+  pages={730--738},
+  year={2016}
+}
+
+@inproceedings{eigen2014,
+  title={Depth map prediction from a single image using a multi-scale deep network},
+  author={Eigen, David and Puhrsch, Christian and Fergus, Rob},
+  booktitle={Advances in neural information processing systems (NeurIPS)},
+  year={2014}
+}
+
+@inproceedings{monodepth2,
+  title={Digging into self-supervised monocular depth estimation},
+  author={Godard, Cl{\'e}ment and Mac Aodha, Oisin and Firman, Michael and Brostow, Gabriel J},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
   year={2019}
-}
-
-@article{ref47,
-  title={SiamFT: An RGB-infrared fusion tracking method via fully convolutional Siamese networks},
-  author={Zhang, Xingchen and Ye, Ping and Peng, Shengyun and others},
-  journal={IEEE Access},
-  volume={7},
-  pages={122122--122133},
-  year={2019},
-  publisher={IEEE}
-}
-
-@article{ref8,
-  title={Object fusion tracking based on visible and infrared images: A comprehensive review},
-  author={Zhang, Xingchen and Ye, Ping and Leung, Henry and others},
-  journal={Information Fusion},
-  volume={63},
-  pages={166--187},
-  year={2020},
-  publisher={Elsevier}
 }

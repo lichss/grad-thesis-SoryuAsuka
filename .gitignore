@@ -1,29 +1,43 @@
-*.7z
+## --- 核心源码（绝对不能忽略） ---
+# !*.tex
+# !*.cls
+# !*.bib
+
+/build
+
+## --- 临时编译中间文件（建议忽略） ---
 *.aux
-*.bat
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
 *.bcf
-# *.cls
-*.glo
-*.gls
-*.gz
-*.hd
+*.xml
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.xdv
+
+
+## --- 索引相关 ---
 *.idx
 *.ilg
 *.ind
-*.log
-*.out
+*.glo
+*.gls
+*.ist
+
+## --- 压缩包与系统文件 ---
+*.7z
 *.rar
-*.sty
-*.sublime-project
-*.sublime-workspace
-*.synctex
-*.synctex(busy)
-# *.tex
-*.toc
-*.txt
-*.xml
 *.zip
 .DS_Store
-build
-test
-# xduts.pdf
+Thumbs.db
+
+## --- 编辑器相关 ---
+.vscode/
+*.sublime-project
+*.sublime-workspace

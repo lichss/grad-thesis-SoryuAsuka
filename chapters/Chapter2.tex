@@ -27,7 +27,7 @@ MDE 可分为相对深度估计与绝对深度（Metric Depth）估计，后者�
 这种解耦设计不仅能最大限度保留基础模型在“野外”环境下的结构泛化力，
 更通过特征驱动的映射机制实现了物理尺度的精确对齐，为构建高鲁棒性的绝对深度感知系统提供了新思路。
 
-\section{模型总体架构设计}
+\section{模型总体结构设计}
 
 % 感觉图片里字有点小了。另外 不知道图片中英文好不好
 \begin{figure}[htbp]
@@ -43,28 +43,75 @@ MDE 可分为相对深度估计与绝对深度（Metric Depth）估计，后者�
 并通过轻量化的度量映射分支实现物理尺度的精准恢复。模型总体架构如图\ref{fig:model_arch}所示，主要由特征提取编码器（Encoder）、
 相对深度估计模块（Relative Estimation Module）以及度量深度估计模块（Metric Estimation Module）三部分组成。
 
+
 \subsection{任务解构与特征提取}
 为了从根本上解决单目绝对深度估计中由于投影歧义性导致的尺度与结构强耦合问题，
 本文将深度恢复过程解构为“结构感知”与“尺度适配”两个解耦的子任务。
 该设计旨在利用大规模预训练模型（如 DPT-BEiT 或 MiDaS 系列）的几何泛化能力，为绝对尺度的恢复提供稳健的拓扑约束。
 
-在特征提取阶段，系统采用统一的共享编码器（Shared Encoder）作为底层基座。
-对于输入的单幅 RGB 图像 $I \in \mathbb{R}^{3 \times H \times W}$，编码器通过分层表征学习提取出具有异构物理意义的特征。
-如公式 \ref{eq:encoder} 所示：
+如图\ref{fig:model_arch}左侧所示，编码器码器模块是整个深度估计框架的特征提取基石。给定输入 RGB 图像$I \in \mathbb{R}^{H \times W \times 3}$，
+编码器的主要任务是将高维像素信息映射为包含语义的深层特征表示。
+为了同时满足相对深度估计对全局结构的需求，以及度量深度恢复对局部细节的需求，
+本文采用基于 Vision Transformer (ViT) \cite{dosovitskiy2021image}的架构（如 DPT/BEiT）作为主干网络。
+与传统的卷积神经网络不同，Transformer 架构天然具备长距离建模能力，能够有效捕捉场景中的上下文依赖关系。
+编码器在处理过程中生成两类关键的特征表示，分别服务于后续的两个并行分支。
+
+%% 这一段公式和公式说明很多。其实显得有些啰嗦了。而且也不知道会不会影响查重。有必要的话还是删除一部分吧。
+1.全局语义标记 (Tokens $\mathbf{T}$)：
+如图中上方路径所示，输入图像首先被切分为固定大小的图块（Patches），并被展平为序列向量。
+%% 公式及说明-1  删除从这里开始
+具体而言，对于分辨率为 $H \times W$ 的输入图像 $I$，我们将切分为 $N = HW/P^2$ 个尺寸为 $P \times P$ 的图块。
+通过线性投影映射与位置编码相加，初始化输入序列 $\mathbf{z}_0$：
 \begin{equation}
-    \{T, F\} = \text{Encoder}(I)
-    \label{eq:encoder}
+\mathbf{z}_0 = [\mathbf{x}_p^1\mathbf{E}; \mathbf{x}_p^2\mathbf{E}; \cdots; \mathbf{x}_p^N\mathbf{E}] + \mathbf{E}_{pos}
 \end{equation}
-其中，$T$ 为蕴含全局几何上下文的标记向量（Tokens）；$F = \{f_1, f_2, f_3, f_4\}$ 为多层级空间特征块（Feature Blocks），
-对应于代码实现中不同层级的瓶颈层特征与解码块输出，承载了丰富的局部空间细节。
+其中，$\mathbf{x}_p^i$ 表示第 $i$ 个图像块，$\mathbf{E} \in \mathbb{R}^{(P^2 \cdot C) \times D}$ 为线性投影矩阵，
+$\mathbf{E}_{pos} \in \mathbb{R}^{N \times D}$ 为可学习的位置嵌入，$D$ 为特征维度。
+%% 删除从这里结束
+经过 Transformer 层的多头自注意力（MSA）机制处理后，
+输入序列通过 $L$ 层 Transformer 编码器进行处理，每一层的特征更新遵循标准的自注意力（MSA）与多层感知机（MLP）机制：
+\begin{equation}
+\begin{aligned}
+\mathbf{z}'_l &= \text{MSA}(\text{LN}(\mathbf{z}_{l-1})) + \mathbf{z}_{l-1} \\
+\mathbf{z}_l &= \text{MLP}(\text{LN}(\mathbf{z}'_l)) + \mathbf{z}'_l, \quad l=1 \dots L
+\end{aligned}
+\end{equation}
+其中 $\text{LN}(\cdot)$ 表示层归一化（Layer Normalization）。最终，编码器的最后一层输出即为全局语义标记 $\mathbf{T} = \mathbf{z}_L$。
+输出序列化的标记集合 $\mathbf{T} = \{t_1, t_2, \dots, t_N\}$。这些 Token 保留了序列形式而未被重组为特征图，
+它们通过自注意力机制充分交互，编码了图像的全局上下文信息。$\mathbf{T}$ 将直接被送入相对估计模块，
+用于推断物体间的遮挡关系和整体场景结构。
 
-这种多路输出设计实现了任务驱动的特征分配逻辑。第一阶段相对估计分支利用标记向量 $T$ 构建场景的宏观拓扑，
-确保深度图在几何序关系与物体边缘上的一致性；第二阶段度量映射分支则通过级联的投影器（Projector）处理特征块 $F$，
-并利用局部特征块引导深度分桶（Bins）的自适应动态调整。
+2.多尺度空间特征 (Features $\mathbf{F}$)：
+如图中下方路径所示，除了序列化的 Token，编码器还通过特征重组操作，从不同深度的 Transformer 层中提取出具有空间分辨率的特征图。
+%% 公式3开始
+为了恢复空间结构，我们从编码器的不同层级索引 $\mathcal{I} = \{l_1, l_2, l_3, l_4\}$ 中提取特征序列，并通过重组操作（Reassemble）将其映射回空间域：
+\begin{equation}
+f_i = \text{Conv}_{1 \times 1}(\text{Reshape}(\mathbf{z}_{l_i})), \quad i \in \{1, 2, 3, 4\}
+\end{equation}
+其中，$\text{Reshape}(\cdot)$ 操作将序列 $\mathbb{R}^{N \times D}$ 还原为 $\mathbb{R}^{\frac{H}{P_i} \times \frac{W}{P_i} \times D}$ 
+的特征张量，$\text{Conv}_{1 \times 1}$ 用于调整通道维度以适配后续模块。
+%% 公式3结束
+本文将这些分层特征记为 $\mathbf{F} = \{f_1, f_2, f_3, f_4\}$，构成了包含从边缘纹理到抽象语义的特征块组合。
+$\mathbf{F}$ 是绝对深度估计模块的主要输入之一。在本文提出的方法中，这些多尺度特征将被送入Xcs-SeedRegressor 和 Xcs-Attractor模块，
+利用其中的坐标注意力机制（CoordAtt\cite{hou2021coordinate}）进一步挖掘空间位置线索，从而实现对绝对尺度的精确恢复。
 
-相较于传统的端到端直接回归范式，这种解构设计能够有效缓解单目深度估计的不适定性（Ill-posedness）。
-通过在特征提取阶段将语义先验与尺度特征进行分离，模型能够有效抑制由于相机内参波动或异质场景切换带来的尺度漂移现象。这种解耦机制确保了模型在恢复物理尺度的同时，
-能够最大限度保留基础模型所提供的强泛化几何结构，从而兼顾了预测结果的数值准确性与空间合理性。
+% 在特征提取阶段，系统采用统一的共享编码器（Shared Encoder）作为底层基座。
+% 对于输入的单幅 RGB 图像 $I \in \mathbb{R}^{3 \times H \times W}$，编码器通过分层表征学习提取出具有异构物理意义的特征。
+% 如公式 \ref{eq:encoder} 所示：
+% \begin{equation}
+%     \{T, F\} = \text{Encoder}(I)
+%     \label{eq:encoder}
+% \end{equation}
+% 其中，$T$ 为蕴含全局几何上下文的标记向量（Tokens）；$F = \{f_1, f_2, f_3, f_4\}$ 为多层级空间特征块（Feature Blocks），
+% 对应于代码实现中不同层级的瓶颈层特征与解码块输出，承载了丰富的局部空间细节。
+
+% 这种多路输出设计实现了任务驱动的特征分配逻辑。第一阶段相对估计分支利用标记向量 $T$ 构建场景的宏观拓扑，
+% 确保深度图在几何序关系与物体边缘上的一致性；第二阶段度量映射分支则通过级联的投影器（Projector）处理特征块 $F$，
+% 并利用局部特征块引导深度分桶（Bins）的自适应动态调整。
+
+% 相较于传统的端到端直接回归范式，这种解构设计能够有效缓解单目深度估计的不适定性（Ill-posedness）。
+% 通过在特征提取阶段将语义先验与尺度特征进行分离，模型能够有效抑制由于相机内参波动或异质场景切换带来的尺度漂移现象。这种解耦机制确保了模型在恢复物理尺度的同时，
+% 能够最大限度保留基础模型所提供的强泛化几何结构，从而兼顾了预测结果的数值准确性与空间合理性。
 
 \subsection{相对几何结构感知分支}
 

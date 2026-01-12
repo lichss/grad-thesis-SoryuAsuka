@@ -9,7 +9,7 @@
 通过概率图模型整合图像的底层信息，但在复杂场景下的建模鲁棒性较差。
 中期阶段随着卷积神经网络（CNN）的兴起，研究重心转向端到端的监督学习 \cite{dorn}，通过多尺度网络架构显著提升了像素级的预测精度。
 现阶段则迈入了以大模型和多任务迁移为特征的新时期，
-以 BEiT \cite{beit} 为代表的掩码图像建模预训练技术与 Vision Transformer (ViT) 架构的应用 \cite{dpt} 极大增强了模型对全局几何上下文的理解。
+以 BEiT \cite{beit} 为代表的掩码图像建模预训练技术与 Vision Transformer (ViT) \cite{dpt}架构的应用极大增强了模型对全局几何上下文的理解。
 
 然而，现有的深度估计方法在非约束场景下的表现仍面临严峻挑战。由于单目深度估计本质上是一个不适定问题，存在固有的比例模糊性\cite{Eigen,uncertainty}，
 神经网络往往倾向于通过学习训练集中的统计偏见（如物体位置与深度的相关性）来“走捷径”，而非真正理解场景的物理几何。这种策略导致模型过度拟合了特定数据集（如 KITTI 或 NYU Depth V2）的成像特性，使其对相机内参及拍摄视角具有极强的依赖性。一旦应用于光照剧变、极端天气或异质场景，由于领域鸿沟的存在，模型的预测精度往往会出现断崖式下降，限制了其在跨平台部署时的零样本迁移能力。
@@ -22,7 +22,7 @@
 这种方法旨在打破单目深度估计在未知场景下的精度瓶颈，为无人系统在复杂、全天候环境下的高精度感知提供新的理论支撑与技术方案。
 \begin{figure}[!ht]    % [htbp] 表示建议 LaTeX 放置图片的位置（Here, Top, Bottom, Page）
     \centering          % 使图片居中
-    \includegraphics[width=1.0\textwidth]{figures/ch1-drone.jpg} % 填入图片文件名（不带后缀也可以），width 指定宽度
+    \includegraphics[width=0.5\textwidth]{figures/ch1-drone.jpg} % 填入图片文件名（不带后缀也可以），width 指定宽度
     \caption{无人机} % 图片下方的标题
     \label{fig:ch1_drone} % 图片的唯一标签，用于正文引用
 \end{figure}
@@ -33,12 +33,57 @@
 单目深度估计根据输出表征的不同，通常可分为绝对深度估计与相对深度估计。绝对深度估计旨在恢复具有明确物理尺度的度量距离，
 但在非约束场景下常面临严峻的尺度模糊性挑战；而相对深度估计则侧重于建模场景内物体的几何序关系，在复杂环境及跨领域迁移中展现出更强的鲁棒性。
 
+\begin{figure}[htbp]
+    \centering % 【关键1】让这四个紧凑的子图整体在页面居中
+
+    % --- 第一行 ---
+    \begin{subfigure}[b]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch1-rgb.jpg}
+        \caption{RGB Input Image}
+        \label{subfig:rgb}
+    \end{subfigure}
+    % 【关键2】去掉 \hfill，使用固定间距 (如 1cm 或 2em)
+    \hspace{1cm}
+    \begin{subfigure}[b]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch1-vis_met.png}
+        \caption{Metric Depth Prediction} % 标题稍微精简以防换行
+        \label{subfig:met}
+    \end{subfigure}
+
+    % --- 垂直间距 ---
+    \par\vspace{1em} % 强制换行并增加垂直距离
+
+    % --- 第二行 ---
+    \begin{subfigure}[b]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch1-_vis_rel.png}
+        \caption{Relative Depth Prediction}
+        \label{subfig:rel}
+    \end{subfigure}
+    % 【关键3】保持和第一行一样的水平间距
+    \hspace{1cm}
+    \begin{subfigure}[b]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ch1-_vis_dis.png}
+        \caption{Disparity Map}
+        \label{subfig:disp}
+    \end{subfigure}
+
+    % 总标题
+    \caption{Qualitative comparison of depth estimation results. (a) Input RGB image. (b) Absolute metric depth. (c) Relative depth. (d) Disparity map (inverse depth).}
+    \label{fig:depth_comparison_4grid}
+\end{figure}
+
+
 相对深度特征的建模最早可追溯至 Saxena 等人\cite{make3d}的研究，该工作首次利用马尔可夫随机场（MRF）建模像素块间的空间相关性，
 奠定了几何建模基础。2016年，Chen 等人\cite{Chen2016}真正将“相对深度估计”确立为一个独立的研究命题，
 证明了通过人类标注的像素对排序先验（Ranking Perception）即可实现复杂场景下的深度感知。
 随后，Ranftl 等人\cite{midas}正式提出了跨数据集混合训练方案，通过尺度与平移不变损失函数（Scale-and-shift-invariant Loss），
 极大提升了模型的零样本（Zero-shot）泛化能力。与此同时，Yin 等人 \cite{leres} 进一步探索了利用多种异构数据集恢复 3D 场景形状的方法，
 有效增强了模型对复杂几何布局的适应性。
+
 
 进入2023年后，相对深度估计在“视觉基础模型”的推动下取得了突破性进展。以 DINOv2\cite{dinov2} 为代表的大规模自监督预训练模型证明，
 强力的语义特征与场景的几何拓扑存在高度一致性。在此基础上，
@@ -58,6 +103,11 @@ Depth Anything\cite{depthanything} 系列工作通过海量无标签数据的判
 随后，为了解决连续值回归收敛困难的问题，Fu 等人\cite{dorn}提出了深度序数回归网络（DORN），
 通过离散化策略将回归任务转化为有序分类，显著提升了特定数据集上的绝对数值精度。在真值获取方面，
 针对激光雷达数据稀疏的挑战，Godard 等人\cite{monodepth2}提出了基于光度一致性约束的自监督学习范式，极大拓宽了应用边界。
+为克服传统卷积神经网络（CNN）在感受野局限性与长距离依赖建模上的不足，基于Transformer\cite{vaswani2017attention}的架构一度成为单目深度估计领域的主流骨干。
+Ranftl等人提出的 DPT (Dense Prediction Transformers) \cite{dpt} 
+率先将Vision Transformer引入密集预测任务，利用自注意力机制捕捉全局上下文信息，显著提升了深度图的整体结构一致性。
+针对深度值的离散化回归难题，AdaBins \cite{bhat2021adabins} 创新性地设计了基于Transformer的区间划分模块，
+通过自适应预测深度中心来实现更精细的深度估计。
 
 进入“基础模型”时代以来，单目深度估计正经历从特定场景拟合向零样本泛化（Zero-shot Generalization）的范式转变。 
 以 Depth Anything\cite{depthanything} 和 Metric3D\cite{metric3d} 为代表的工作，通过大规模弱监督预训练与数据蒸馏技术，

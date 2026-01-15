@@ -33,7 +33,7 @@ MDE 可分为相对深度估计与绝对深度（Metric Depth）估计，后者�
 \begin{figure}[htbp]
     \centering
     \begin{adjustbox}{center} % 强制相对于页面中心对齐
-        \includegraphics[width=1.2\textwidth]{figures/主结构-最新drawio.drawio.pdf}
+        \includegraphics[width=1.2\textwidth]{figures/ch1-整体结构图v2.png}
     \end{adjustbox}
     \caption{单目深度估计任务解构与特征提取框架}
     \label{fig:model_arch}
@@ -43,6 +43,119 @@ MDE 可分为相对深度估计与绝对深度（Metric Depth）估计，后者�
 并通过轻量化的度量映射分支实现物理尺度的精准恢复。模型总体架构如图\ref{fig:model_arch}所示，主要由特征提取编码器（Encoder）、
 相对深度估计模块（Relative Estimation Module）以及度量深度估计模块（Metric Estimation Module）三部分组成。
 
+
+\subsection{特征编码器 (Feature Encoder)}
+\label{subsec:encoder}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{adjustbox}{center} % 强制相对于页面中心对齐
+        \includegraphics[width=1.0\textwidth]{figures/Encoder结构示意.png}
+    \end{adjustbox}
+    \caption{单目深度估计任务解构与特征提取框架}
+    \label{fig:encoder_arch}
+\end{figure}
+
+在本节中，我们详细阐述模型的编码器结构。本文采用 Vision Transformer (ViT) 的变体作为骨干网络（Backbone），
+旨在从输入图像中提取具有长距离依赖关系的全局上下文特征。与传统的卷积神经网络（CNN）随着网络加深逐步降低空间分辨率不同，
+基于 Transformer 的编码器在所有阶段均保持恒定的 Token 序列长度，从而确保模型在每一层都拥有全局感受野。
+
+\subsubsection{图像分块与嵌入 (Patch Embedding)}
+给定输入图像 $I \in \mathbb{R}^{H \times W \times C}$，其中 $(H, W)$ 表示图像的空间分辨率，$C$ 为通道数。
+首先，我们将图像 $I$ 划分为一系列固定大小的非重叠切片（Patch），记为 $x_p \in \mathbb{R}^{N \times (P^2 \cdot C)}$，
+其中 $(P, P)$ 为每个切片的分辨率，$N = \frac{HW}{P^2}$ 为切片的总数。
+
+如图 \ref{fig:encoder_arch}所示，通过一个可学习的线性投影层 $E$，将展平后的切片映射到潜在向量维度 $D$。
+为了保留图像的空间位置信息，我们将可学习的位置编码 $E_{pos}$ 逐元素加到切片嵌入中。此外，我们在序列首部拼接了一个特殊的“Readout Token”（通常称为 Class Token），
+用于聚合全局语义信息。编码器的初始输入 $z_0$ 可表示为：
+
+\begin{equation}
+z_0 = [x_{readout}; x_p^1 E; x_p^2 E; \dots; x_p^N E] + E_{pos},
+\end{equation}
+
+其中 $x_{readout} \in \mathbb{R}^D$ 表示用于全局特征聚合的 Readout Token。
+
+\subsubsection{Transformer 层 (Transformer Layers)}
+编码器由 $L$ 个堆叠的 Transformer 模块组成。每个模块包含两个主要子层：多头自注意力机制 (Multi-Head Self-Attention, MSA) 
+和多层感知机 (Multi-Layer Perceptron, MLP)。在每个子层之前均应用层归一化 (Layer Normalization, LN)，并在每个子层之后采用残差连接。
+第 $l$ 层的计算过程如下：
+
+\begin{equation}
+\begin{aligned}
+z'_l &= \text{MSA}(\text{LN}(z_{l-1})) + z_{l-1}, \\
+z_l &= \text{MLP}(\text{LN}(z'_l)) + z'_l,
+\end{aligned}
+\end{equation}
+
+其中 $z_l$ 表示第 $l$ 层的输出表示。得益于自注意力机制，编码器能够从第一层开始即有效地建模图像中任意两个切片之间的长距离依赖关系。
+
+\subsubsection{层级特征提取 (Hierarchical Feature Extraction)}
+尽管 Transformer 编码器输出的 Token 序列维度始终为 $D$，但网络不同深度的层能够捕获不同层级的语义抽象。
+为了适应后续密集预测任务的需求，我们采用了层级特征提取策略。如图所示，我们从预选的层（例如层索引 $\{l_1, l_2, l_3, l_4\}$）中提取 Token 表示，
+作为多尺度特征输入，用于后续的重组 (Reassemble) 和融合 (Fusion) 模块。这些中间层特征兼顾了底层的纹理细节与高层的语义语境，对深度估计任务至关重要。
+
+\subsection{特征重组模块 (Reassemble Module)}
+\label{subsec:reassemble}
+
+Vision Transformer 编码器输出的是一维的词元序列，缺乏传统卷积神经网络所需的二维空间结构。
+为了将这些序列特征用于密集的像素级预测，我们需要将其恢复为类图像的特征图。
+如图所示，我们在编码器和融合模块之间引入了重组 (Reassemble) 操作。
+
+对于从编码器第 $l$ 层提取的输出词元序列 $z_l \in \mathbb{R}^{(N+1) \times D}$（包含 $N$ 个图像词元和 1 个 Readout 词元），
+重组过程包含以下三个主要阶段：
+
+\subsubsection{读取与空间还原 (Read and Reshape)}
+首先，我们执行 \texttt{Read} 操作。由于 Readout 词元主要聚合全局信息而缺乏明确的空间对应关系，我们在重组阶段将其丢弃，仅保留 $N$ 个图像词元。
+随后，利用 \texttt{Concatenate} 操作将这些一维词元按照其在原始图像中的空间位置重新排列。
+假设切片大小为 $P \times P$，我们将序列 $z_l^{img} \in \mathbb{R}^{N \times D}$ 重塑为二维特征图 $f_l \in \mathbb{R}^{\frac{H}{P} \times \frac{W}{P} \times D}$。
+
+\subsubsection{特征投影 (Projection)}
+为了统一来自不同深度的特征维度，便于后续融合，我们对重塑后的特征图应用 \texttt{Project} 操作。
+具体而言，使用一个 $1 \times 1$ 的卷积层将输入通道维度 $D$ 映射到固定的嵌入维度 $\hat{D}$（例如 256）：
+
+\begin{equation}
+\hat{f}_l = \text{Conv}_{1\times1}(f_l),
+\end{equation}
+
+其中 $\hat{f}_l \in \mathbb{R}^{\frac{H}{P} \times \frac{W}{P} \times \hat{D}}$。
+
+\subsubsection{多尺度重采样 (Resample)}
+为了构建特征金字塔，我们需要将特征图调整到目标分辨率。我们定义 \texttt{Resample} 操作，根据所需的输出比例 $s$（相对于输入图像的分辨率，如 $\frac{1}{4}, \frac{1}{8}, \frac{1}{16}, \frac{1}{32}$），对 $\hat{f}_l$ 进行空间上的上采样或下采样。
+\begin{itemize}
+    \item 对于需要下采样的阶段（如 $s \ge P$），我们使用步长卷积 (Strided Convolution) 来降低空间分辨率。
+    \item 对于需要上采样的阶段（如 $s < P$），我们使用转置卷积 (Transposed Convolution) 进行上采样。
+\end{itemize}
+
+经过上述处理，我们得到了一组多尺度的特征图 $\{F_{s_1}, F_{s_2}, F_{s_3}, F_{s_4}\}$，
+它们将作为输入被送入后续的融合模块 (Fusion Module) 中。
+
+\subsection{特征融合与上采样 (Feature Fusion and Upsampling)}
+\label{subsec:fusion}
+
+为了从多尺度特征中恢复精细的密集预测结果，我们需要将重组后的特征图进行逐级融合。如图 \ref{fig:encoder_arch} 右下侧所示，我们设计了一个特征融合模块 (Fusion Module)，旨在结合深层网络的高级语义信息与浅层网络的空间细节信息。
+
+融合过程采用由深至浅（Coarse-to-Fine）的级联结构。对于每一个融合阶段，该模块接收两路输入：
+\begin{itemize}
+    \item \textbf{横向输入 (Lateral Input)}：来自当前层级 Reassemble 模块的特征图，记为 $R_s$。这部分特征通过残差连接引入，保留了当前分辨率下的特征细节。
+    \item \textbf{纵向输入 (Vertical Input)}：来自上一级融合模块输出的特征图，记为 $M_{prev}$。这部分特征通过了上采样处理，携带了更抽象的全局语义。
+\end{itemize}
+
+具体融合流程包含以下步骤：
+
+\subsubsection{残差卷积单元 (Residual Convolutional Units)}
+首先，为了对齐特征表示并增强非线性表达能力，横向输入的特征图 $R_s$ 会经过一个残差卷积单元 (Residual Conv Unit)。
+该单元包含两个 $3 \times 3$ 卷积层（带激活函数），并包含恒等映射路径。随后，我们将处理后的横向特征与纵向特征进行逐元素相加 (Element-wise Addition)：
+
+\begin{equation}
+M_{sum} = \text{ResConv}(R_s) + M_{prev}
+\end{equation}
+
+相加后的特征 $M_{sum}$ 会再次经过一个残差卷积单元进行特征平滑与整合。
+
+\subsubsection{上采样与投影 (Upsampling and Projection)}
+为了将融合后的特征传递至下一个更高分辨率的阶段，我们需要对特征图进行空间上采样。如图所示的Resample$_{0.5}$操作表示将空间分辨率扩大为输入的2倍（即尺度因子为 0.5 的逆操作）。采用双线性插值 (Bilinear Interpolation)来实现。
+
+最后，通过Project层（通常为 $1 \times 1$ 卷积）将通道数调整为下一阶段所需的维度。经过多次级联融合后，最终的高分辨率特征图被送入预测头 (Prediction Head) 以生成最终的深度图。
 
 \subsection{任务解构与特征提取}
 为了从根本上解决单目绝对深度估计中由于投影歧义性导致的尺度与结构强耦合问题，
@@ -57,17 +170,18 @@ MDE 可分为相对深度估计与绝对深度（Metric Depth）估计，后者�
 编码器在处理过程中生成两类关键的特征表示，分别服务于后续的两个并行分支。
 
 %% 这一段公式和公式说明很多。其实显得有些啰嗦了。而且也不知道会不会影响查重。有必要的话还是删除一部分吧。
+%% 我靠他妈的都不够字数。还是别删了 
 1.全局语义标记 (Tokens $\mathbf{T}$)：
 如图中上方路径所示，输入图像首先被切分为固定大小的图块（Patches），并被展平为序列向量。
-%% 公式及说明-1  删除从这里开始
-具体而言，对于分辨率为 $H \times W$ 的输入图像 $I$，我们将切分为 $N = HW/P^2$ 个尺寸为 $P \times P$ 的图块。
+%% 公式1开始
+具体而言，对于分辨率为 $H \times W$ 的输入图像 $I$，本文将切分为 $N = HW/P^2$ 个尺寸为 $P \times P$ 的图块。
 通过线性投影映射与位置编码相加，初始化输入序列 $\mathbf{z}_0$：
 \begin{equation}
 \mathbf{z}_0 = [\mathbf{x}_p^1\mathbf{E}; \mathbf{x}_p^2\mathbf{E}; \cdots; \mathbf{x}_p^N\mathbf{E}] + \mathbf{E}_{pos}
 \end{equation}
 其中，$\mathbf{x}_p^i$ 表示第 $i$ 个图像块，$\mathbf{E} \in \mathbb{R}^{(P^2 \cdot C) \times D}$ 为线性投影矩阵，
 $\mathbf{E}_{pos} \in \mathbb{R}^{N \times D}$ 为可学习的位置嵌入，$D$ 为特征维度。
-%% 删除从这里结束
+%% 1结束
 经过 Transformer 层的多头自注意力（MSA）机制处理后，
 输入序列通过 $L$ 层 Transformer 编码器进行处理，每一层的特征更新遵循标准的自注意力（MSA）与多层感知机（MLP）机制：
 \begin{equation}
@@ -84,7 +198,7 @@ $\mathbf{E}_{pos} \in \mathbb{R}^{N \times D}$ 为可学习的位置嵌入，$D$
 2.多尺度空间特征 (Features $\mathbf{F}$)：
 如图中下方路径所示，除了序列化的 Token，编码器还通过特征重组操作，从不同深度的 Transformer 层中提取出具有空间分辨率的特征图。
 %% 公式3开始
-为了恢复空间结构，我们从编码器的不同层级索引 $\mathcal{I} = \{l_1, l_2, l_3, l_4\}$ 中提取特征序列，并通过重组操作（Reassemble）将其映射回空间域：
+为了恢复空间结构，本文从编码器的不同层级索引 $\mathcal{I} = \{l_1, l_2, l_3, l_4\}$ 中提取特征序列，并通过重组操作（Reassemble）将其映射回空间域：
 \begin{equation}
 f_i = \text{Conv}_{1 \times 1}(\text{Reshape}(\mathbf{z}_{l_i})), \quad i \in \{1, 2, 3, 4\}
 \end{equation}
